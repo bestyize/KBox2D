@@ -7,7 +7,7 @@ KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，�
 - `kbox2d/`：物理引擎核心模块
 - `composeApp/`：Compose 多平台演示应用
 - `iosApp/`：iOS 容器工程
-- `doc/USER_MANUAL.md`：本地用户手册
+- `doc/`：本地文档目录
 - `PLAN.md`：迁移计划与待办
 - `EXEC.md`：执行纪要与时间线
 
@@ -50,15 +50,26 @@ KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，�
 - Android：直接在 IDE 中运行 `composeApp`
 - iOS：用 Xcode 打开 `iosApp/` 运行
 
+## 文档导航
+
+- 总览：`doc/README.md`
+- 用户手册：`doc/USER_MANUAL.md`
+- API 概览：`doc/API_OVERVIEW.md`
+- 迁移指南：`doc/MIGRATION_GUIDE.md`
+- 迁移计划：`PLAN.md`
+- 执行时间线：`EXEC.md`
+
 ## 建议阅读顺序
 
 1. `doc/USER_MANUAL.md`
-2. `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
-3. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/WorldStepTest.kt`
-4. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/joints/JointRuntimeTest.kt`
-5. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/particle/ParticleSystemTest.kt`
-6. `PLAN.md`
-7. `EXEC.md`
+2. `doc/API_OVERVIEW.md`
+3. `doc/MIGRATION_GUIDE.md`
+4. `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
+5. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/WorldStepTest.kt`
+6. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/joints/JointRuntimeTest.kt`
+7. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/particle/ParticleSystemTest.kt`
+8. `PLAN.md`
+9. `EXEC.md`
 
 ## 当前演示说明
 
@@ -74,14 +85,6 @@ KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，�
 
 - `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/App.kt`
 - `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
-
-## 文档说明
-
-- 用户手册：`doc/USER_MANUAL.md`
-- 迁移计划：`PLAN.md`
-- 执行时间线：`EXEC.md`
-
-用户手册参考了 Box2D 官方手册、Box2D Hello World、JBox2D 官方站点与 GitHub 项目说明，并结合当前仓库 API 重新整理。
 
 ## 现阶段定位
 
