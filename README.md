@@ -1,48 +1,101 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM).
+# KBox2D
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，用来把 JBox2D / Box2D 的核心能力迁移到 Kotlin 多平台环境，并通过 Compose Multiplatform 提供可运行演示。
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+## 这个仓库里有什么
 
-### Build and Run Android Application
+- `kbox2d/`：物理引擎核心模块
+- `composeApp/`：Compose 多平台演示应用
+- `iosApp/`：iOS 容器工程
+- `doc/USER_MANUAL.md`：本地用户手册
+- `PLAN.md`：迁移计划与待办
+- `EXEC.md`：执行纪要与时间线
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+## 当前能力
 
-### Build and Run Desktop (JVM) Application
+当前仓库已经接通并验证过的能力包括：
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+- 刚体世界：`World`、`Body`、`Fixture`
+- 碰撞主链：接触管理、Island 求解、ContactSolver
+- 多种 joint runtime：距离、转轴、滑轨、绳索、轮子、齿轮、滑轮等
+- 连续碰撞主链：包含 bullet 使用场景
+- 粒子系统：粒子、粒子组、query、raycast、destroy-in-shape、group depth 等
+- Compose 演示：边界、障碍物、点击生成、暂停/重置/清空动态体
 
-### Build and Run iOS Application
+## 适合谁看
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+这个工程特别适合以下几类读者：
 
----
+- 想把 JBox2D 项目迁移到 Kotlin Multiplatform 的开发者
+- 想在 Compose Multiplatform 里接入 2D 物理的开发者
+- 想阅读 Box2D / JBox2D 在 Kotlin 里的迁移实现方式的开发者
+- 想要一个可直接运行 demo 的学习型仓库读者
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## 如何快速跑起来
+
+### 编译核心与测试
+
+```bash
+./gradlew :composeApp:compileKotlinJvm :kbox2d:jvmTest
+```
+
+### 运行桌面演示
+
+```bash
+./gradlew :composeApp:run
+```
+
+### Android / iOS
+
+- Android：直接在 IDE 中运行 `composeApp`
+- iOS：用 Xcode 打开 `iosApp/` 运行
+
+## 建议阅读顺序
+
+1. `doc/USER_MANUAL.md`
+2. `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
+3. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/WorldStepTest.kt`
+4. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/joints/JointRuntimeTest.kt`
+5. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/particle/ParticleSystemTest.kt`
+6. `PLAN.md`
+7. `EXEC.md`
+
+## 当前演示说明
+
+当前桌面演示是一个矩形区域内的掉落场景，支持：
+
+- 球体与方块掉落
+- 静态边界与障碍物
+- 点击画布生成新物体
+- 生成模式切换：随机 / 球 / 方块
+- 暂停、重置、清空动态物体
+
+演示入口位于：
+
+- `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/App.kt`
+- `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
+
+## 文档说明
+
+- 用户手册：`doc/USER_MANUAL.md`
+- 迁移计划：`PLAN.md`
+- 执行时间线：`EXEC.md`
+
+用户手册参考了 Box2D 官方手册、Box2D Hello World、JBox2D 官方站点与 GitHub 项目说明，并结合当前仓库 API 重新整理。
+
+## 现阶段定位
+
+请把这个仓库理解为：
+
+- 一个持续迁移中的 KMP 物理引擎工程
+- 一个可运行、可验证、可继续迭代的学习与实验仓库
+- 一个为后续正式封装、发布、接入应用做准备的基础工程
+
+它不是一个已经完全发布和稳定冻结的产品库，但已经具备相当完整的核心运行能力。
+
+## 参考资料
+
+- Box2D: https://box2d.org/documentation/
+- JBox2D: http://www.jbox2d.org/
+- JBox2D GitHub: https://github.com/jbox2d/jbox2d
+
