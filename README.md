@@ -2,6 +2,8 @@
 
 KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，用来把 JBox2D / Box2D 的核心能力迁移到 Kotlin 多平台环境，并通过 Compose Multiplatform 提供可运行演示。
 
+![KBox2D Desktop Demo](doc/pic/demo.png)
+
 ## 这个仓库里有什么
 
 - `kbox2d/`：物理引擎核心模块
