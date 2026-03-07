@@ -2,15 +2,29 @@ package xyz.thewind.kbox2d.dynamics
 
 import xyz.thewind.kbox2d.callbacks.ContactFilter
 import xyz.thewind.kbox2d.callbacks.ContactListener
+import xyz.thewind.kbox2d.callbacks.DebugDraw
 import xyz.thewind.kbox2d.callbacks.DestructionListener
 import xyz.thewind.kbox2d.callbacks.ParticleDestructionListener
+import xyz.thewind.kbox2d.callbacks.QueryCallback
+import xyz.thewind.kbox2d.callbacks.RayCastCallback
+import xyz.thewind.kbox2d.callbacks.TreeCallback
+import xyz.thewind.kbox2d.callbacks.TreeRayCastCallback
+import xyz.thewind.kbox2d.collision.AABB
+import xyz.thewind.kbox2d.collision.RayCastInput
+import xyz.thewind.kbox2d.collision.RayCastOutput
 import xyz.thewind.kbox2d.collision.TimeOfImpact
 import xyz.thewind.kbox2d.collision.broadphase.BroadPhase
 import xyz.thewind.kbox2d.collision.broadphase.DefaultBroadPhaseBuffer
 import xyz.thewind.kbox2d.collision.broadphase.DynamicTree
+import xyz.thewind.kbox2d.collision.shapes.ChainShape
+import xyz.thewind.kbox2d.collision.shapes.CircleShape
+import xyz.thewind.kbox2d.collision.shapes.EdgeShape
+import xyz.thewind.kbox2d.collision.shapes.PolygonShape
 import xyz.thewind.kbox2d.collision.shapes.ShapeType
+import xyz.thewind.kbox2d.common.Color3f
 import xyz.thewind.kbox2d.common.Settings
 import xyz.thewind.kbox2d.common.Sweep
+import xyz.thewind.kbox2d.common.Transform
 import xyz.thewind.kbox2d.common.Vec2
 import xyz.thewind.kbox2d.dynamics.contacts.Contact
 import xyz.thewind.kbox2d.dynamics.contacts.ContactRegister
@@ -47,6 +61,7 @@ open class World(
     var m_jointCount: Int = 0
     var m_destructionListener: DestructionListener? = null
     private var m_particleDestructionListener: ParticleDestructionListener? = null
+    private var m_debugDraw: DebugDraw? = null
 
     private val contactStacks: Array<Array<ContactRegister?>> =
         Array(ShapeType.values().size) { arrayOfNulls(ShapeType.values().size) }
@@ -140,7 +155,74 @@ open class World(
         m_bodyCount--
     }
 
+    fun getGravity(): Vec2 = m_gravity
+
+    fun setGravity(gravity: Vec2) {
+        m_gravity.set(gravity)
+    }
+
+    fun shiftOrigin(newOrigin: Vec2) {
+        if (isLocked()) {
+            return
+        }
+        if (newOrigin.x == 0f && newOrigin.y == 0f) {
+            return
+        }
+        var body = m_bodyList
+        while (body != null) {
+            body.m_xf.p.subLocal(newOrigin)
+            body.m_xf0.p.subLocal(newOrigin)
+            body.m_sweep.c.subLocal(newOrigin)
+            body.m_sweep.c0.subLocal(newOrigin)
+            body = body.m_next
+        }
+        var joint = m_jointList
+        while (joint != null) {
+            when (joint) {
+                is xyz.thewind.kbox2d.dynamics.joints.MouseJoint -> joint.getTarget().subLocal(newOrigin)
+                is xyz.thewind.kbox2d.dynamics.joints.PulleyJoint -> {
+                    joint.getGroundAnchorA().subLocal(newOrigin)
+                    joint.getGroundAnchorB().subLocal(newOrigin)
+                }
+            }
+            joint = joint.m_next
+        }
+        m_particleSystem.shiftOrigin(newOrigin)
+        m_contactManager.m_broadPhase.shiftOrigin(newOrigin)
+    }
+
     fun createParticle(def: ParticleDef): Int = m_particleSystem.createParticle(def)
+
+    fun queryAABB(callback: QueryCallback, aabb: AABB) {
+        val broadPhase = m_contactManager.m_broadPhase
+        broadPhase.query(TreeCallback { proxyId ->
+            val proxy = broadPhase.getUserData(proxyId) as? FixtureProxy ?: return@TreeCallback true
+            val fixture = proxy.fixture ?: return@TreeCallback true
+            callback.reportFixture(fixture)
+        }, aabb)
+    }
+
+    fun raycast(callback: RayCastCallback, point1: Vec2, point2: Vec2) {
+        val broadPhase = m_contactManager.m_broadPhase
+        val input = RayCastInput().apply {
+            p1.set(point1)
+            p2.set(point2)
+            maxFraction = 1f
+        }
+        broadPhase.raycast(TreeRayCastCallback { subInput, nodeId ->
+            val proxy = broadPhase.getUserData(nodeId) as? FixtureProxy ?: return@TreeRayCastCallback subInput.maxFraction
+            val fixture = proxy.fixture ?: return@TreeRayCastCallback subInput.maxFraction
+            val output = RayCastOutput()
+            if (!fixture.raycast(output, subInput, proxy.childIndex)) {
+                return@TreeRayCastCallback subInput.maxFraction
+            }
+            val point = Vec2(
+                (1f - output.fraction) * subInput.p1.x + output.fraction * subInput.p2.x,
+                (1f - output.fraction) * subInput.p1.y + output.fraction * subInput.p2.y,
+            )
+            callback.reportFixture(fixture, point, output.normal, output.fraction)
+        }, input)
+    }
 
     fun destroyParticle(index: Int, callDestructionListener: Boolean = false) {
         m_particleSystem.destroyParticle(index, callDestructionListener)
@@ -337,15 +419,6 @@ open class World(
         }
         m_invDt0 = step.inv_dt
         m_flags = m_flags and LOCKED.inv()
-    }
-
-    fun clearForces() {
-        var body = m_bodyList
-        while (body != null) {
-            body.m_force.setZero()
-            body.m_torque = 0f
-            body = body.m_next
-        }
     }
 
     fun setAllowSleep(flag: Boolean) {
@@ -681,15 +754,183 @@ open class World(
         creator.push(contact)
     }
 
+    fun dump(): String = buildString {
+        appendLine("World dump:")
+        appendLine(" gravity=$m_gravity")
+        appendLine(" bodies=$m_bodyCount joints=$m_jointCount contacts=${m_contactManager.m_contactCount} proxies=${m_contactManager.m_broadPhase.getProxyCount()}")
+        appendLine(" flags: allowSleep=$m_allowSleep warmStarting=$m_warmStarting continuousPhysics=$m_continuousPhysics subStepping=$m_subStepping autoClearForces=$m_clearForces")
+        val profileLines = mutableListOf<String>()
+        m_profile.toDebugStrings(profileLines)
+        profileLines.forEach(::appendLine)
+    }
+
+    fun getProfile(): Profile = m_profile
+
+    fun clearForces() {
+        var body = m_bodyList
+        while (body != null) {
+            body.m_force.setZero()
+            body.m_torque = 0f
+            body = body.m_next
+        }
+    }
+
+    fun setAutoClearForces(flag: Boolean) {
+        m_clearForces = flag
+    }
+
+    fun getAutoClearForces(): Boolean = m_clearForces
+
+    fun setDebugDraw(debugDraw: DebugDraw?) {
+        m_debugDraw = debugDraw
+    }
+
+    fun getDebugDraw(): DebugDraw? = m_debugDraw
+
+    fun drawDebugData() {
+        val debugDraw = m_debugDraw ?: return
+        val flags = debugDraw.getFlags()
+        if ((flags and DebugDraw.e_shapeBit) != 0) {
+            var body = m_bodyList
+            while (body != null) {
+                var fixture = body.getFixtureList()
+                val color = getBodyDebugColor(body)
+                while (fixture != null) {
+                    drawShape(debugDraw, fixture, body, color, flags)
+                    fixture = fixture.getNext()
+                }
+                body = body.getNext()
+            }
+        }
+        if ((flags and DebugDraw.e_jointBit) != 0) {
+            var joint = m_jointList
+            while (joint != null) {
+                drawJoint(debugDraw, joint)
+                joint = joint.getNext()
+            }
+        }
+        if ((flags and DebugDraw.e_pairBit) != 0) {
+            var contact = m_contactManager.m_contactList
+            while (contact != null) {
+                val centerA = contact.getFixtureA().getAABB(contact.getChildIndexA()).getCenter()
+                val centerB = contact.getFixtureB().getAABB(contact.getChildIndexB()).getCenter()
+                debugDraw.drawSegment(centerA, centerB, Color3f(0.3f, 0.9f, 0.9f))
+                contact = contact.getNext()
+            }
+        }
+        if ((flags and DebugDraw.e_aabbBit) != 0) {
+            var body = m_bodyList
+            while (body != null) {
+                var fixture = body.getFixtureList()
+                while (fixture != null) {
+                    drawFixtureAabbs(debugDraw, fixture)
+                    fixture = fixture.getNext()
+                }
+                body = body.getNext()
+            }
+        }
+        if ((flags and DebugDraw.e_centerOfMassBit) != 0) {
+            var body = m_bodyList
+            while (body != null) {
+                val transform = Transform(body.getTransform())
+                transform.p.set(body.getWorldCenter())
+                debugDraw.drawTransform(transform)
+                body = body.getNext()
+            }
+        }
+        if ((flags and DebugDraw.e_dynamicTreeBit) != 0) {
+            m_contactManager.m_broadPhase.drawTree(debugDraw)
+        }
+        debugDraw.flush()
+    }
+
+    private fun getBodyDebugColor(body: Body): Color3f = when {
+        !body.isActive() -> Color3f(0.5f, 0.5f, 0.3f)
+        body.getType() == BodyType.STATIC -> Color3f(0.5f, 0.9f, 0.5f)
+        body.getType() == BodyType.KINEMATIC -> Color3f(0.5f, 0.5f, 0.9f)
+        !body.isAwake() -> Color3f(0.6f, 0.6f, 0.6f)
+        else -> Color3f(0.9f, 0.7f, 0.7f)
+    }
+
+    private fun drawShape(debugDraw: DebugDraw, fixture: Fixture, body: Body, color: Color3f, flags: Int) {
+        val wireframe = (flags and DebugDraw.e_wireframeDrawingBit) != 0
+        when (val shape = fixture.getShape()) {
+            is CircleShape -> {
+                val center = body.getWorldPoint(shape.m_p)
+                val axis = body.getWorldVector(Vec2(1f, 0f))
+                if (wireframe) {
+                    debugDraw.drawCircle(center, shape.m_radius, color)
+                } else {
+                    debugDraw.drawSolidCircle(center, shape.m_radius, axis, color)
+                }
+            }
+            is PolygonShape -> {
+                val vertices = Array(shape.m_count) { Vec2() }
+                for (index in 0 until shape.m_count) {
+                    body.getWorldPointToOut(shape.m_vertices[index], vertices[index])
+                }
+                if (wireframe) {
+                    debugDraw.drawPolygon(vertices, shape.m_count, color)
+                } else {
+                    debugDraw.drawSolidPolygon(vertices, shape.m_count, color)
+                }
+            }
+            is EdgeShape -> {
+                debugDraw.drawSegment(body.getWorldPoint(shape.m_vertex1), body.getWorldPoint(shape.m_vertex2), color)
+            }
+            is ChainShape -> {
+                val vertices = shape.m_vertices ?: return
+                for (index in 0 until shape.m_count - 1) {
+                    debugDraw.drawSegment(body.getWorldPoint(vertices[index]), body.getWorldPoint(vertices[index + 1]), color)
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    private fun drawJoint(debugDraw: DebugDraw, joint: Joint) {
+        val anchorA = Vec2()
+        val anchorB = Vec2()
+        joint.getAnchorA(anchorA)
+        joint.getAnchorB(anchorB)
+        val centerA = joint.getBodyA().getWorldCenter()
+        val centerB = joint.getBodyB().getWorldCenter()
+        val color = Color3f(0.5f, 0.8f, 0.8f)
+        debugDraw.drawSegment(centerA, anchorA, color)
+        debugDraw.drawSegment(anchorA, anchorB, color)
+        debugDraw.drawSegment(centerB, anchorB, color)
+    }
+
+    private fun drawFixtureAabbs(debugDraw: DebugDraw, fixture: Fixture) {
+        val color = Color3f(0.9f, 0.3f, 0.9f)
+        for (index in 0 until fixture.m_proxyCount) {
+            val vertices = Array(4) { Vec2() }
+            fixture.getAABB(index).getVertices(vertices)
+            debugDraw.drawPolygon(vertices, 4, color)
+        }
+    }
+
     fun getPool(): IWorldPool = pool
 
     fun getBodyList(): Body? = m_bodyList
 
     fun getJointList(): Joint? = m_jointList
 
+    fun getContactList(): Contact? = m_contactManager.m_contactList
+
     fun getBodyCount(): Int = m_bodyCount
 
     fun getJointCount(): Int = m_jointCount
+
+    fun getContactCount(): Int = m_contactManager.m_contactCount
+
+    fun getProxyCount(): Int = m_contactManager.m_broadPhase.getProxyCount()
+
+    fun getTreeHeight(): Int = m_contactManager.m_broadPhase.getTreeHeight()
+
+    fun getTreeBalance(): Int = m_contactManager.m_broadPhase.getTreeBalance()
+
+    fun getTreeQuality(): Float = m_contactManager.m_broadPhase.getTreeQuality()
 
     fun isLocked(): Boolean = (m_flags and LOCKED) == LOCKED
 

@@ -55,6 +55,18 @@ class ParticleSystem(private val world: World) {
     private var springStrength: Float = 0.25f
     private var elasticStrength: Float = 0.25f
 
+    fun shiftOrigin(newOrigin: Vec2) {
+        for (position in positionBuffer) {
+            position.subLocal(newOrigin)
+        }
+        var group = groupList
+        while (group != null) {
+            group.m_transform.p.subLocal(newOrigin)
+            group = group.m_next
+        }
+        m_timestamp++
+    }
+
     fun solve(step: TimeStep) {
         if (positionBuffer.isEmpty()) return
         val gravity = world.m_gravity

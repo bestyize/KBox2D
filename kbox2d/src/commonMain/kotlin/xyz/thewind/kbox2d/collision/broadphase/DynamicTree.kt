@@ -209,6 +209,15 @@ class DynamicTree : BroadPhaseStrategy {
         }
     }
 
+    override fun shiftOrigin(newOrigin: Vec2) {
+        for (node in m_nodes) {
+            val current = node ?: continue
+            if (current.height < 0) continue
+            current.aabb.lowerBound.subLocal(newOrigin)
+            current.aabb.upperBound.subLocal(newOrigin)
+        }
+    }
+
     override fun computeHeight(): Int = computeHeight(m_root)
 
     override fun getHeight(): Int = m_root?.height ?: 0

@@ -15,6 +15,7 @@ interface BroadPhaseStrategy {
     fun getFatAABB(proxyId: Int): AABB
     fun query(callback: TreeCallback, aabb: AABB)
     fun raycast(callback: TreeRayCastCallback, input: RayCastInput)
+    fun shiftOrigin(newOrigin: Vec2)
     fun computeHeight(): Int
     fun getHeight(): Int
     fun getMaxBalance(): Int

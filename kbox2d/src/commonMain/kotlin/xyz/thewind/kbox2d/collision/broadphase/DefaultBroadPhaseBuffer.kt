@@ -98,6 +98,10 @@ class DefaultBroadPhaseBuffer(private val m_tree: BroadPhaseStrategy) : TreeCall
         m_tree.raycast(callback, input)
     }
 
+    override fun shiftOrigin(newOrigin: Vec2) {
+        m_tree.shiftOrigin(newOrigin)
+    }
+
     override fun getTreeHeight(): Int = m_tree.getHeight()
 
     override fun getTreeBalance(): Int = m_tree.getMaxBalance()
