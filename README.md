@@ -1,47 +1,51 @@
 # KBox2D
 
-KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，用来把 JBox2D / Box2D 的核心能力迁移到 Kotlin 多平台环境，并通过 Compose Multiplatform 提供可运行演示。
+**English** | [简体中文](README.zh-CN.md)
 
-![KBox2D Desktop Demo](doc/pic/demo.png)
+KBox2D is an experimental 2D physics engine built with Kotlin Multiplatform. The project aims to bring core JBox2D / Box2D functionality to Kotlin Multiplatform, with runnable examples powered by Compose Multiplatform.
 
-## 这个仓库里有什么
+![KBox2D desktop demo](doc/pic/demo.png)
 
-- `kbox2d/`：物理引擎核心模块
-- `composeApp/`：Compose 多平台演示应用
-- `iosApp/`：iOS 容器工程
-- `doc/`：本地文档目录
-- `PLAN.md`：迁移计划与待办
-- `EXEC.md`：执行纪要与时间线
+## Repository structure
 
-## 当前能力
+- [`kbox2d/`](kbox2d/) — cross-platform physics engine core
+- [`composeApp/`](composeApp/) — Compose Multiplatform demo application
+- [`iosApp/`](iosApp/) — iOS host project
+- [`doc/`](doc/) — documentation
+- [`PLAN.md`](PLAN.md) — migration plan and pending work
+- [`EXEC.md`](EXEC.md) — implementation log and timeline
 
-当前仓库已经接通并验证过的能力包括：
+## Current capabilities
 
-- 刚体世界：`World`、`Body`、`Fixture`
-- 碰撞主链：接触管理、Island 求解、ContactSolver
-- 多种 joint runtime：距离、转轴、滑轨、绳索、轮子、齿轮、滑轮等
-- 连续碰撞主链：包含 bullet 使用场景
-- 粒子系统：粒子、粒子组、query、raycast、destroy-in-shape、group depth 等
-- Compose 演示：边界、障碍物、点击生成、暂停/重置/清空动态体
+Implemented and exercised in the repository:
 
-## 适合谁看
+- **Rigid-body simulation:** `World`, `Body`, and `Fixture`
+- **Collision pipeline:** contact management, island solving, and `ContactSolver`
+- **Joints:** distance, revolute, prismatic, rope, wheel, gear, pulley, and other joint runtimes
+- **Continuous collision detection:** including bullet-body scenarios
+- **Particles:** particles and groups, queries, ray casting, destroy-in-shape, group depth, and related operations
+- **Compose demo:** boundaries, obstacles, click-to-spawn interactions, pause, reset, and clearing dynamic bodies
 
-这个工程特别适合以下几类读者：
+## Who is this for?
 
-- 想把 JBox2D 项目迁移到 Kotlin Multiplatform 的开发者
-- 想在 Compose Multiplatform 里接入 2D 物理的开发者
-- 想阅读 Box2D / JBox2D 在 Kotlin 里的迁移实现方式的开发者
-- 想要一个可直接运行 demo 的学习型仓库读者
+KBox2D may be useful if you want to:
 
-## 如何快速跑起来
+- Migrate a JBox2D-based application to Kotlin Multiplatform
+- Integrate 2D physics into a Compose Multiplatform project
+- Explore how Box2D / JBox2D concepts can be implemented in multiplatform Kotlin
+- Run and study a working 2D physics example
 
-### 编译核心与测试
+## Quick start
+
+Run the following commands from the repository root.
+
+### Compile the JVM demo and run core tests
 
 ```bash
 ./gradlew :composeApp:compileKotlinJvm :kbox2d:jvmTest
 ```
 
-### 运行桌面演示
+### Run the desktop demo
 
 ```bash
 ./gradlew :composeApp:run
@@ -49,58 +53,57 @@ KBox2D 是一个基于 Kotlin Multiplatform 的 2D 物理引擎实验项目，�
 
 ### Android / iOS
 
-- Android：直接在 IDE 中运行 `composeApp`
-- iOS：用 Xcode 打开 `iosApp/` 运行
+- **Android:** open the project in Android Studio and run the `composeApp` application.
+- **iOS:** on macOS, open the `iosApp/` project in Xcode and run the iOS app.
 
-## 文档导航
+## Documentation
 
-- 总览：`doc/README.md`
-- 用户手册：`doc/USER_MANUAL.md`
-- API 概览：`doc/API_OVERVIEW.md`
-- 迁移指南：`doc/MIGRATION_GUIDE.md`
-- 迁移计划：`PLAN.md`
-- 执行时间线：`EXEC.md`
+The detailed guides below are currently written in Chinese:
 
-## 建议阅读顺序
+- [Documentation index](doc/README.md)
+- [User manual](doc/USER_MANUAL.md)
+- [API overview](doc/API_OVERVIEW.md)
+- [Migration guide](doc/MIGRATION_GUIDE.md)
+- [Migration plan](PLAN.md)
+- [Execution timeline](EXEC.md)
 
-1. `doc/USER_MANUAL.md`
-2. `doc/API_OVERVIEW.md`
-3. `doc/MIGRATION_GUIDE.md`
-4. `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
-5. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/WorldStepTest.kt`
-6. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/joints/JointRuntimeTest.kt`
-7. `kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/particle/ParticleSystemTest.kt`
-8. `PLAN.md`
-9. `EXEC.md`
+## Suggested reading order
 
-## 当前演示说明
+1. [`doc/USER_MANUAL.md`](doc/USER_MANUAL.md)
+2. [`doc/API_OVERVIEW.md`](doc/API_OVERVIEW.md)
+3. [`doc/MIGRATION_GUIDE.md`](doc/MIGRATION_GUIDE.md)
+4. [`SimpleDropDemoScreen.kt`](composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt)
+5. [`WorldStepTest.kt`](kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/WorldStepTest.kt)
+6. [`JointRuntimeTest.kt`](kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/dynamics/joints/JointRuntimeTest.kt)
+7. [`ParticleSystemTest.kt`](kbox2d/src/commonTest/kotlin/xyz/thewind/kbox2d/particle/ParticleSystemTest.kt)
+8. [`PLAN.md`](PLAN.md)
+9. [`EXEC.md`](EXEC.md)
 
-当前桌面演示是一个矩形区域内的掉落场景，支持：
+## Desktop demo
 
-- 球体与方块掉落
-- 静态边界与障碍物
-- 点击画布生成新物体
-- 生成模式切换：随机 / 球 / 方块
-- 暂停、重置、清空动态物体
+The current desktop demo shows objects falling inside a bounded rectangular world. It supports:
 
-演示入口位于：
+- Falling circles and boxes
+- Static boundaries and obstacles
+- Clicking the canvas to create objects
+- Random / circle / box spawn modes
+- Pause, reset, and removal of dynamic bodies
 
-- `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/App.kt`
-- `composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt`
+Entry points:
 
-## 现阶段定位
+- [`App.kt`](composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/App.kt)
+- [`SimpleDropDemoScreen.kt`](composeApp/src/commonMain/kotlin/xyz/thewind/kbox2d/SimpleDropDemoScreen.kt)
 
-请把这个仓库理解为：
+## Project status
 
-- 一个持续迁移中的 KMP 物理引擎工程
-- 一个可运行、可验证、可继续迭代的学习与实验仓库
-- 一个为后续正式封装、发布、接入应用做准备的基础工程
+KBox2D is an **ongoing Kotlin Multiplatform physics-engine port**, rather than a finished or API-stable library release. It is intended as a runnable, testable foundation for experimentation, further porting, and eventual packaging and integration.
 
-它不是一个已经完全发布和稳定冻结的产品库，但已经具备相当完整的核心运行能力。
+## License
 
-## 参考资料
+Original KBox2D contributions are released under the [MIT License](LICENSE). The project draws on JBox2D / Box2D; any upstream copyrights and licenses applicable to adapted third-party materials remain in effect. See [Third-party notices](THIRD_PARTY_NOTICES.md).
 
-- Box2D: https://box2d.org/documentation/
-- JBox2D: http://www.jbox2d.org/
-- JBox2D GitHub: https://github.com/jbox2d/jbox2d
+## References
 
+- [Box2D documentation](https://box2d.org/documentation/)
+- [JBox2D website](http://www.jbox2d.org/)
+- [JBox2D on GitHub](https://github.com/jbox2d/jbox2d)
