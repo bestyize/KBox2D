@@ -1,0 +1,142 @@
+# Publishing KBox2D to Maven Central
+
+KBox2D publishes **only** the reusable `kbox2d` Kotlin Multiplatform module.
+The `composeApp` example application is intentionally excluded.
+
+The planned release coordinates are:
+
+```kotlin
+commonMain.dependencies {
+    implementation("io.github.bestyize:kbox2d:0.1.0")
+}
+```
+
+The example above will resolve **only after** version `0.1.0` is actually
+published to Maven Central. A version tag or GitHub Release alone does not
+make artifacts available there.
+
+## 1. Register the namespace
+
+1. Sign into [Sonatype Central Portal](https://central.sonatype.com/) **with
+   the GitHub account `bestyize`**.
+2. In [Namespaces](https://central.sonatype.com/publishing/namespaces), confirm
+   that `io.github.bestyize` is **Verified**. Sonatype usually provisions
+   this namespace automatically for GitHub sign-in. If it did not, follow the
+   Portal's instructions or contact Central Support.
+3. In [User Token](https://central.sonatype.com/usertoken), generate a new
+   publishing token. Its **username and password are different from your
+   Sonatype login credentials**.
+
+Do not continue until the namespace is verified. Do not post credentials,
+token values or signing keys in issues, commits or pull requests.
+
+## 2. Create an artifact-signing key
+
+On your own trusted workstation (not in CI):
+
+```bash
+gpg --full-generate-key
+gpg --list-secret-keys --keyid-format LONG
+```
+
+Select a suitable signing key and set a strong passphrase. Replace `KEY_ID`
+with the key's actual ID:
+
+```bash
+gpg --keyserver keyserver.ubuntu.com --send-keys KEY_ID
+gpg --armor --export-secret-keys KEY_ID > /safe/location/kbox2d-signing-key.asc
+```
+
+The exported ASCII file is a **private key**. Store it securely, outside this
+repository, and remove unneeded copies. Upload only the **public** key to a
+keyserver; Sonatype checks the signing key.
+
+## 3. Add the GitHub Actions secrets
+
+In `bestyize/KBox2D` go to **Settings → Secrets and variables → Actions**,
+then create the following *repository secrets*:
+
+| Secret | Value |
+| --- | --- |
+| `MAVEN_CENTRAL_USERNAME` | User Token **username** from Central Portal |
+| `MAVEN_CENTRAL_PASSWORD` | User Token **password** from Central Portal |
+| `GPG_KEY_CONTENTS` | Entire ASCII-armored private key (including BEGIN/END lines) |
+| `SIGNING_PASSWORD` | Passphrase of that private key |
+| `SIGNING_KEY_ID` | Signing key ID (optional, useful when multiple keys exist) |
+
+Never commit these to the repository or add them to the tracked
+`gradle.properties` file. The workflow provides them through
+`ORG_GRADLE_PROJECT_*` environment variables.
+
+## 4. Verify the publication locally
+
+```bash
+./gradlew :kbox2d:jvmTest :kbox2d:publishToMavenLocal --no-configuration-cache
+```
+
+This creates Kotlin Multiplatform, Android, JVM, and iOS local publications on
+a capable macOS machine; it does **not** contact Maven Central. On non-macOS
+machines, only the publications supported by the build host can be verified.
+The signing key is intentionally not required for local verification.
+
+To inspect release-like Maven metadata without uploading, set a version:
+
+```bash
+./gradlew :kbox2d:publishToMavenLocal -PreleaseVersion=0.1.0 --no-configuration-cache
+```
+
+Check `~/.m2/repository/io/github/bestyize/` for the generated POMs,
+Gradle module metadata, sources and Javadoc artifacts. Verify the license and
+SCM metadata, and check for generated platform coordinates (for example,
+`kbox2d-jvm`).
+
+## 5. Publish a new immutable release
+
+After the publishing PR is merged, all CI checks are green, the namespace is
+verified, and secrets are configured:
+
+```bash
+git checkout master
+git pull --ff-only
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The [Maven Central workflow](../.github/workflows/maven-central.yml) then:
+
+1. Validates the version tag format.
+2. Runs JVM tests and verifies local publication artifacts on macOS.
+3. Checks that the publishing credentials are available.
+4. Signs and uploads all supported KMP platform publications.
+5. Requests Maven Central to automatically publish the validated deployment.
+
+A failing test or a missing secret prevents the upload. Ordinary branch pushes
+and pull requests run verification **only**. The workflow intentionally
+does not publish from `workflow_dispatch`, preventing accidental releases.
+
+Maven Central releases are **immutable**. Do not reuse an already published
+version; publish `v0.1.1`, `v0.2.0`, etc. The Gradle property
+`releaseVersion` is derived from the Git tag, without the leading `v`.
+The default local version is `0.1.0-SNAPSHOT`.
+
+Track deployment status in
+[Central Portal Deployments](https://central.sonatype.com/publishing/deployments).
+New releases can take some time to appear in the public Maven index.
+
+## Notes
+
+- KMP root coordinates: `io.github.bestyize:kbox2d:<version>`.
+  Platform-specific publications are generated by the Kotlin Gradle plugin.
+- The POM references the original MIT contributions and upstream BSD-3-Clause
+  materials. Keep [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) intact.
+- Avoid publishing to Maven Central until any adapted third-party code and
+  redistribution notices have been reviewed for license compliance.
+- Git tags alone do not prove external adoption of the library. Treat actual
+  downloads and downstream project dependencies as separate signals.
+
+## Official references
+
+- [Kotlin Multiplatform: Publish to Maven Central](https://kotlinlang.org/docs/multiplatform/multiplatform-publish-libraries-to-maven.html)
+- [Vanniktech: Maven Central configuration](https://vanniktech.github.io/gradle-maven-publish-plugin/central/)
+- [Sonatype: Register a namespace](https://central.sonatype.org/register/namespace/)
+- [Sonatype: Required metadata and signatures](https://central.sonatype.org/publish/requirements/)
