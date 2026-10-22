@@ -1,0 +1,83 @@
+name: Maven Central
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-central-${{ github.ref }}
+  # Keep tagged releases immutable; superseded PR/branch verification can be cancelled.
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  verify-and-publish:
+    name: Verify KMP artifacts and publish tagged releases
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      ORG_GRADLE_PROJECT_releaseVersion: 0.1.0-SNAPSHOT
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK platform
+        run: sdkmanager --install "platforms;android-36"
+
+      - name: Read release version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Expected a version tag like v0.1.0 or v0.1.0-rc.1"
+            exit 1
+          fi
+          echo "ORG_GRADLE_PROJECT_releaseVersion=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Validate JVM tests and local KMP publications
+        run: ./gradlew :kbox2d:jvmTest :kbox2d:publishToMavenLocal --no-configuration-cache
+
+      - name: Check Maven Central credentials are present
+        if: startsWith(github.ref, 'refs/tags/v') && github.repository == 'bestyize/KBox2D'
+        shell: bash
+        env:
+          CENTRAL_USER: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.GPG_KEY_CONTENTS }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          for required in CENTRAL_USER CENTRAL_PASSWORD SIGNING_KEY SIGNING_PASSWORD; do
+            if [[ -z "${!required}" ]]; then
+              echo "::error::Missing publishing secret: $required. See docs/MAVEN_CENTRAL.md."
+              exit 1
+            fi
+          done
+
+      - name: Publish and release on Maven Central
+        if: startsWith(github.ref, 'refs/tags/v') && github.repository == 'bestyize/KBox2D'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache

@@ -6,6 +6,24 @@ KBox2D is an experimental 2D physics engine built with Kotlin Multiplatform. The
 
 ![KBox2D desktop demo](doc/pic/demo.png)
 
+## Maven Central publication
+
+The `kbox2d` engine module is configured for Maven Central under
+`io.github.bestyize:kbox2d` (KMP root publication); platform variants are
+published alongside it. **Version 0.1.0 is planned, not yet available on
+Maven Central.** Once it is published, add the following dependency to a
+Kotlin Multiplatform project:
+
+```kotlin
+commonMain.dependencies {
+    implementation("io.github.bestyize:kbox2d:0.1.0")
+}
+```
+
+Maintainers: see [Maven Central publishing guide](docs/MAVEN_CENTRAL.md) for
+namespace verification, GPG keys, GitHub Secrets, local validation, and
+version-tag releases.
+
 ## Repository structure
 
 - [`kbox2d/`](kbox2d/) — cross-platform physics engine core
