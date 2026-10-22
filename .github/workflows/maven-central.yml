@@ -14,7 +14,8 @@ permissions:
 
 concurrency:
   group: maven-central-${{ github.ref }}
-  cancel-in-progress: false
+  # Keep tagged releases immutable; superseded PR/branch verification can be cancelled.
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
 jobs:
   verify-and-publish:
